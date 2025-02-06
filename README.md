@@ -7,6 +7,7 @@ Blink Detection: Verifies liveliness with blink detection using the Eye Aspect R
 MySQL Integration: Stores face encodings in a MySQL database.
 GUI: A user-friendly interface built with Tkinter to display video feed, recognized faces, and provide options for face registration.
 Logging: Logs the name and timestamp of registered faces.
+
 **Requirements**
 **Dependencies:**
 Python 3.x
@@ -20,15 +21,7 @@ opencv-python
 Pillow
 tkinter
 scipy
-<pre>CREATE DATABASE face_recognition_db;
 
-USE face_recognition_db;
-
-CREATE TABLE faces (
-    name VARCHAR(255) PRIMARY KEY,
-    encoding BLOB
-);
-<pre>
 **Notes**
 The system recognizes faces by comparing their encodings to the ones stored in the database.
 The database stores each face’s name and encoding as a BLOB. The encodings are serialized using pickle.
