@@ -110,6 +110,9 @@ def show_frame():
         top, right, bottom, left = [int(i * 2) for i in (top, right, bottom, left)]
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
 
+        # Put recognized name on the face box
+        cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         rects = detector(gray, 0)
 
@@ -183,8 +186,6 @@ def register(window, welcome):
 
     # Resume camera feed after registration is done
     is_registering = False
-
-
 
 # Create button to register when user confirms with blink
 btn = tk.Button(window, text="Register", font="Helvetica 16 bold", fg="white", bg="SteelBlue4",
