@@ -2,11 +2,11 @@
  This project implements a face recognition system for access control using a camera, MySQL database for storing face data, and a simple GUI built with Tkinter. The system recognizes registered faces and logs events when a face is recognized.
 
 # Features
-Face Detection: Detects faces in real-time using dlib and face_recognition.
-Blink Detection: Verifies liveliness with blink detection using the Eye Aspect Ratio (EAR).
-MySQL Integration: Stores face encodings in a MySQL database.
-GUI: A user-friendly interface built with Tkinter to display video feed, recognized faces, and provide options for face registration.
-Logging: Logs the name and timestamp of registered faces.
+* Face Detection: Detects faces in real-time using dlib and face_recognition.
+* Blink Detection: Verifies liveliness with blink detection using the Eye Aspect Ratio (EAR).
+* MySQL Integration: Stores face encodings in a MySQL database.
+* GUI: A user-friendly interface built with Tkinter to display video feed, recognized faces, and provide options for face registration.
+* Logging: Logs the name and timestamp of registered faces.
 
 # Requirements
 **Dependencies:**
