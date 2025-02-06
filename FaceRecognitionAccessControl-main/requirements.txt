@@ -1,0 +1,7 @@
+numpy
+opencv-python
+tk
+pillow
+face-recognition
+cmake
+dlib
