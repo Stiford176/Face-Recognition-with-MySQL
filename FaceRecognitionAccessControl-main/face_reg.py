@@ -23,8 +23,8 @@ LEFT_EYE = list(range(42, 48))
 RIGHT_EYE = list(range(36, 42))
 
 # Blink detection parameters
-BLINK_THRESHOLD = 0.15  # Eye aspect ratio threshold for blink detection
-BLINK_FRAMES = 1  # Minimum frames required to consider it as a blink
+BLINK_THRESHOLD = 0.15  
+BLINK_FRAMES = 0.50  
 blink_counter = 0
 blinks_detected = 0
 
@@ -37,12 +37,12 @@ detector = dlib.get_frontal_face_detector()
 def init_db():
     return mysql.connector.connect(
         host="localhost",
-        user="root",  # Change to your MySQL username
-        password="123456",  # Change to your MySQL password
+        user="root",  
+        password="123456",  
         database="face_recognition_db"
     )
 
-# Function to load known faces from the MySQL database
+# Function to load known faces from the database
 def load_known_faces(conn):
     cursor = conn.cursor()
     cursor.execute("SELECT name, encoding FROM faces")
@@ -52,42 +52,38 @@ def load_known_faces(conn):
     cursor.close()
     return known_face_encodings, known_face_names
 
-# Set up GUI
+# GUI setup
 window = tk.Tk()
 window.wm_title("Face Recognition for Access Control")
-window.config(background="#74b0c0")
+window.config(background="#000000")
 
-# Create Graphics window for the camera feed
-imageFrame = tk.Frame(window, width=600, height=600, bg="white")
-imageFrame.grid(row=0, column=0, rowspan=3, padx=10, pady=2)
+imageFrame = tk.Frame(window, width=1920, height=1080, bg="black")
+imageFrame.grid(row=2, column=0, columnspan=3, padx=1, pady=2) 
 
-# Capture video frames
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("❌ Error: Camera not detected! Exiting...")
     exit()
 
-# Initialize labels
 recognized_label = tk.Label(window, text="Recognized: None", font="Helvetica 16 bold", fg="black", bg="white")
-recognized_label.grid(row=3, column=0, columnspan=3, padx=5, pady=5)
-welcome = tk.Label(window, text="                               ", font="Helvetica 16 bold", fg="white", bg="SteelBlue4")
-welcome.grid(row=2, column=1, padx=5, pady=5)
+recognized_label.grid(row=1, column=1, padx=10, pady=5)
 
-# Initialize MySQL connection and load known faces
+welcome = tk.Label(window, text="", font="Helvetica 16 bold", fg="black", bg="white")
+welcome.grid(row=0, column=1, padx=10, pady=5)
+
 conn = init_db()
 known_face_encodings, known_face_names = load_known_faces(conn)
 
-# Declare face_names globally
 face_names = []
-is_registering = False  # Flag to indicate if registering a new face
+is_registering = False  
 
-# Function to show video feed and handle face detection
 def show_frame():
-    global blink_counter, blinks_detected, face_names, is_registering  # Declare global face_names
-    if is_registering:  # Skip frame processing during registration
-        return
+    global blink_counter, blinks_detected, face_names, is_registering  
 
-    face_names = []  # Reset the list each time the frame is processed
+    if is_registering:
+        return  
+
+    face_names = []  
     ret, frame = cap.read()
     if not ret or frame is None:
         print("❌ Error: No frame captured!")
@@ -99,18 +95,22 @@ def show_frame():
     face_locations = face_recognition.face_locations(rgb_small_frame)
     face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
+    detected_real_face = False  
+
     for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
         matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-        name = "Unknown"
+        name = "Invalid or Not Registered"  
+
         if True in matches:
             best_match_index = np.argmin(face_recognition.face_distance(known_face_encodings, face_encoding))
             name = known_face_names[best_match_index]
+            detected_real_face = True  
+
         face_names.append(name)
 
         top, right, bottom, left = [int(i * 2) for i in (top, right, bottom, left)]
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
 
-        # Put recognized name on the face box
         cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -133,6 +133,11 @@ def show_frame():
                     blinks_detected += 1
                 blink_counter = 0
 
+    if detected_real_face:
+        welcome.config(text=f"Hi {face_names[0]}! Welcome!", fg="black")
+    else:
+        welcome.config(text="⚠️ Only real humans can be recognized!", fg="red")
+
     recognized_label.config(text="Recognized: " + ", ".join(face_names) if face_names else "Recognized: Unknown")
 
     img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA))
@@ -142,32 +147,28 @@ def show_frame():
 
     window.after(10, show_frame)
 
-def register(window, welcome):
-    global blink_counter, blinks_detected, face_names, is_registering  # Declare global face_names
+def register():
+    global is_registering  
 
-    # Phase 1: Blink verification
     if blinks_detected < 2:
         messagebox.showwarning("Warning", "Please blink twice to confirm liveliness.")
         return
 
-    # Phase 2: Freeze camera feed and ask for name after verification
-    is_registering = True  # Set this to True to stop show_frame
+    is_registering = True  
 
-    # Define the path to save the logs inside the "people" folder
-    log_dir = os.path.join(os.getcwd(), 'people')  # This uses the current working directory and the 'people' folder
+    log_dir = os.path.join(os.getcwd(), 'people')
     if not os.path.exists(log_dir):
-        os.makedirs(log_dir)  # Create the 'people' folder if it doesn't exist
+        os.makedirs(log_dir)
 
     for name in face_names:
-        if name == "Unknown":
+        if name == "Invalid or Not Registered":
             name = simpledialog.askstring("Register Face", "Please enter your name:")
             if name:
-                ret, frame = cap.read()  # Capture the frame
+                ret, frame = cap.read()  
                 if ret:
-                    face_encoding = face_recognition.face_encodings(frame)[0]  # Encode the face
+                    face_encoding = face_recognition.face_encodings(frame)[0]  
                     encoded_face = pickle.dumps(face_encoding)
 
-                    # Insert the face encoding into the database
                     cursor = conn.cursor()
                     cursor.execute(
                         "INSERT INTO faces (name, encoding) VALUES (%s, %s) ON DUPLICATE KEY UPDATE encoding=%s",
@@ -176,28 +177,22 @@ def register(window, welcome):
                     conn.commit()
                     cursor.close()
 
-                    # Save log inside the 'people' folder
                     log_file_path = os.path.join(log_dir, f"logs_{str(datetime.now())[:10]}.txt")
                     with open(log_file_path, 'a+') as f:
                         f.write(f"{str(datetime.now())[11:-10]}\t{name}\n")
 
-                    welcome.config(text="Hi " + name.capitalize())
+                    welcome.config(text=f"Hi {name.capitalize()}! You are now registered.", fg="green")
                     messagebox.showinfo("Success", f"Face registered as {name}!")
 
-    # Resume camera feed after registration is done
-    is_registering = False
+    is_registering = False  
 
-# Create button to register when user confirms with blink
-btn = tk.Button(window, text="Register", font="Helvetica 16 bold", fg="white", bg="SteelBlue4",
-                command=lambda: register(window, welcome))
-btn.grid(row=0, column=1, padx=5, pady=5)
+btn = tk.Button(window, text="Register", font="Helvetica 16 bold", fg="black", bg="white",
+                command=register)
+btn.grid(row=3, column=0, columnspan=3, padx=5, pady=5)
 
-# Display camera feed
 display1 = tk.Label(imageFrame)
-display1.grid(row=1, column=0, columnspan=3, padx=10, pady=2)
+display1.grid(row=2, column=0, columnspan=3, padx=1, pady=2)
 
-# Start the frame processing
 show_frame()
 
-# Run the GUI
 window.mainloop()
